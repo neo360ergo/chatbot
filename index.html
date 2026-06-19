@@ -1,409 +1,307 @@
-// ============================================================
-// 360 Ergometric Tests — Backend API (Google Apps Script)
-// v3 — Chat με CacheService για session history
-// ============================================================
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>360 Ergometric — Σύμβουλος</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+:root{--bg:#0c0f18;--sur:#13172a;--sur2:#1a1f35;--bor:#252d4a;--acc:#4f8ef7;--acc2:#00d4aa;--txt:#e8edf5;--mut:#5a6480;--lab:#8b95b0;--ai:#161c30;--us:#1a3a6e;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--txt);height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+.top{background:var(--sur);border-bottom:1px solid var(--bor);padding:11px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.av{width:35px;height:35px;background:linear-gradient(135deg,var(--acc),var(--acc2));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0;position:relative;}
+.av::after{content:'';position:absolute;bottom:1px;right:1px;width:8px;height:8px;background:var(--acc2);border-radius:50%;border:2px solid var(--sur);}
+.bn{font-size:13px;font-weight:600;}.br{font-size:11px;color:var(--mut);}
+.pw{margin-left:auto;font-size:10px;color:var(--mut);}.pw b{color:var(--acc2);}
+.chat{flex:1;overflow-y:auto;padding:16px 13px;display:flex;flex-direction:column;gap:11px;scroll-behavior:smooth;}
+.chat::-webkit-scrollbar{width:3px;}.chat::-webkit-scrollbar-thumb{background:var(--bor);border-radius:2px;}
+.msg{display:flex;gap:8px;align-items:flex-end;animation:fu .2s ease;}
+@keyframes fu{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.msg.u{flex-direction:row-reverse;}
+.av2{width:25px;height:25px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;}
+.msg.ai .av2{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;}
+.msg.u .av2{background:var(--bor);color:var(--lab);}
+.bbl{max-width:80%;padding:9px 13px;border-radius:14px;font-size:13px;line-height:1.65;}
+.msg.ai .bbl{background:var(--ai);border:1px solid var(--bor);border-bottom-left-radius:3px;}
+.msg.u .bbl{background:var(--us);border-bottom-right-radius:3px;color:#c8dcff;}
+.typ{display:flex;gap:4px;align-items:center;padding:10px 13px;background:var(--ai);border:1px solid var(--bor);border-radius:14px;border-bottom-left-radius:3px;}
+.dt{width:6px;height:6px;background:var(--mut);border-radius:50%;animation:b 1.2s infinite;}
+.dt:nth-child(2){animation-delay:.2s}.dt:nth-child(3){animation-delay:.4s}
+@keyframes b{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-4px);opacity:1}}
+.chips{display:flex;flex-wrap:wrap;gap:6px;padding:2px 0 3px 33px;animation:fu .28s ease .1s both;}
+.chip{background:var(--sur2);border:1px solid var(--bor);border-radius:16px;padding:5px 12px;font-size:12px;color:var(--lab);cursor:pointer;transition:all .13s;white-space:nowrap;}
+.chip:hover{border-color:var(--acc);color:var(--acc);background:rgba(79,142,247,.08);}
+.rec{background:linear-gradient(135deg,var(--sur2),#0f1628);border:1px solid var(--acc);border-radius:12px;padding:15px;max-width:82%;}
+.rec-b{display:inline-flex;align-items:center;gap:4px;background:rgba(79,142,247,.12);border:1px solid rgba(79,142,247,.25);border-radius:16px;padding:3px 10px;font-size:10px;font-weight:700;color:var(--acc);text-transform:uppercase;letter-spacing:.07em;margin-bottom:9px;}
+.rec-t{font-size:16px;font-weight:700;margin-bottom:4px;}
+.rec-d{font-size:12px;color:var(--lab);line-height:1.6;margin-bottom:11px;}
+.rec-s{display:flex;flex-direction:column;gap:5px;margin-bottom:12px;}
+.rec-si{display:flex;align-items:center;gap:6px;font-size:12px;}
+.rec-si::before{content:'✓';width:16px;height:16px;background:rgba(0,212,170,.12);border:1px solid rgba(0,212,170,.3);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--acc2);flex-shrink:0;}
+.rec-p{font-size:11px;color:var(--mut);border-top:1px solid var(--bor);padding-top:8px;margin-bottom:12px;}
+.rec-p strong{color:var(--acc2);font-size:13px;}
+.btn-c{width:100%;background:linear-gradient(135deg,var(--acc),var(--acc2));border:none;border-radius:7px;padding:10px;font-size:13px;font-weight:600;color:#fff;cursor:pointer;transition:opacity .13s;}
+.btn-c:hover{opacity:.88;}
+.frm{background:var(--sur2);border:1px solid var(--bor);border-radius:12px;padding:15px;max-width:82%;display:flex;flex-direction:column;gap:8px;}
+.frm-t{font-size:13px;font-weight:600;margin-bottom:2px;}
+.frm input,.frm select{background:var(--bg);border:1px solid var(--bor);border-radius:7px;padding:8px 11px;font-size:13px;color:var(--txt);font-family:'Inter',sans-serif;outline:none;transition:border-color .13s;width:100%;}
+.frm input:focus,.frm select:focus{border-color:var(--acc);}
+.frm input::placeholder{color:var(--mut);}
+.frm select option{background:var(--sur2);}
+.btn-s{background:linear-gradient(135deg,var(--acc),var(--acc2));border:none;border-radius:7px;padding:10px;font-size:13px;font-weight:600;color:#fff;cursor:pointer;}
+.frm-n{font-size:10px;color:var(--mut);text-align:center;}
+.inp-row{flex-shrink:0;background:var(--sur);border-top:1px solid var(--bor);padding:10px 13px;display:flex;gap:7px;align-items:center;}
+.inp-row textarea{flex:1;background:var(--sur2);border:1px solid var(--bor);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--txt);font-family:'Inter',sans-serif;resize:none;outline:none;max-height:85px;line-height:1.5;transition:border-color .13s;}
+.inp-row textarea:focus{border-color:var(--acc);}
+.inp-row textarea::placeholder{color:var(--mut);}
+.btn-send{width:34px;height:34px;background:linear-gradient(135deg,var(--acc),var(--acc2));border:none;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.btn-send svg{width:14px;height:14px;fill:#fff;}
+</style>
+</head>
+<body>
 
-var CONFIG = {
-  CLAUDE_API_KEY:  "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",
-  DRIVE_FOLDER_ID: "ΒΑΛΕ_ΤΟ_DRIVE_FOLDER_ID",
-  FROM_EMAIL:      "neo@360ergometrictests.com",
-  FROM_NAME:       "360 Ergometric Tests",
-  LAB_PHONE:       "+357 99341202",
-  LAB_URL:         "https://ergometrictests.com"
+<div class="top">
+  <div class="av">N</div>
+  <div>
+    <div class="bn">Neo · 360 Ergometric Tests</div>
+    <div class="br">Σύμβουλος Αθλητικής Επιστήμης</div>
+  </div>
+  <div class="pw">Powered by <b>AI</b></div>
+</div>
+
+<div class="chat" id="chat"></div>
+
+<div class="inp-row">
+  <textarea id="inp" placeholder="Γράψε μήνυμα..." rows="1"
+    onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send()}"
+    oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
+  <button class="btn-send" onclick="send()">
+    <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+  </button>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════
+// Apps Script Web App URL
+// ══════════════════════════════════════════════════
+var API = "https://script.google.com/macros/s/AKfycbxX1lZGmtETvgScWWzu_4KdTJ_RqsWRZVG37cOtr0kw0dkjoOgv8-Nu5md2Mj1H-4rMQg/exec";
+
+var SESSION_ID = 'sid_' + Date.now() + '_' + Math.random().toString(36).substr(2,9);
+var isBusy = false;
+var cbCount = 0;
+
+// ── Init ────────────────────────────────────────────
+window.onload = function() {
+  setTimeout(function() {
+    showTyping(function() {
+      addAI("Γεια σου! 👋 Είμαι ο Neo, σύμβουλος του 360 Ergometric Tests.\n\nΠες μου λίγα λόγια για σένα — είσαι αθλητής, ενδιαφέρεσαι για κάποιο τεστ προσωπικά, ή εκπροσωπείς μια ομάδα ή σύλλογο;");
+      addChips(["Είμαι αθλητής", "Ενδιαφέρομαι ως ιδιώτης", "Εκπροσωπώ σύλλογο / ακαδημία", "Είμαι γονιός αθλητή"]);
+    });
+  }, 500);
 };
 
-var CHAT_SYSTEM_PROMPT = 'Είσαι ο Neo, ο ειδικός σύμβουλος του εργαστηρίου "360 Ergometric Tests" στη Λευκωσία Κύπρου.\n' +
-'Διεύθυνση: Θεοκρίτου 3, Τ.Κ.1060, Λευκωσία | Τηλ: +357 99341202 | ergometrictests.com | info@ergometrictests.com\n' +
-'Ωράριο: Δευτέρα-Παρασκευή 8:00-21:00, Σάββατο 9:00-15:00\n\n' +
-'Ο ρόλος σου: Να καταλάβεις ποιος είναι ο επισκέπτης και να του προτείνεις το κατάλληλο πακέτο — φιλικά, επαγγελματικά, στα Ελληνικά.\n\n' +
-'## ΤΑΥΤΟΤΗΤΑ ΕΡΓΑΣΤΗΡΙΟΥ:\n' +
-'- Κατέχουμε ~70% της αγοράς αθλητικών αξιολογήσεων στην Κύπρο\n' +
-'- Εξυπηρετούμε κάθε άθλημα — όχι μόνο ποδόσφαιρο\n' +
-'- Μετρήσεις ΤΟΣΟ στο εργαστήριο ΟΣΟ ΚΑΙ on-site στο γήπεδο/εγκαταστάσεις του club\n' +
-'- Πλατφόρμα αποτελεσμάτων: app.ergometrictests.com\n' +
-'- Στατιστική βάση χιλιάδων μετρήσεων — percentiles ανά ηλικία, φύλο, άθλημα\n\n' +
-'## ΥΠΗΡΕΣΙΕΣ:\n' +
-'Ατομικές: Εργομετρικές Δοκιμασίες VO2max €90 | Ισοκινητική Cybex NORM €90 | RMR €90 | Σύνθεση Σώματος | Πρόγραμμα Άσκησης | Runners πακέτο | Cooking for You διατροφή\n' +
-'B2B Σύλλογοι/Ακαδημίες: Ανάστημα/Μάζα, %Λίπος, Ευλυγισία, Ευκινησία, Ταχύτητες 0-10/20/30μ, Δύναμη Άνω/Κάτω Άκρων, Ισοκινητική, Αερόβια/Αναερόβια\n' +
-'Επίσης B2B: Percentiles, Σεμινάρια, Πλατφόρμα αποτελεσμάτων, Return-to-Play\n' +
-'Συχνότητα: 4-12 ετών κάθε τρίμηνο | 12+ 4x/αγωνιστική περίοδο\n' +
-'Πελάτες: Δεκάδες σύλλογοι από όλα τα αθλήματα — ΜΗΝ αναφέρεις ποτέ συγκεκριμένα ονόματα\n\n' +
-'## ΚΑΝΟΝΕΣ:\n' +
-'1. Ξεκίνα φιλικά — μάθε ποιος είναι (αθλητής, γονιός, σύλλογος, ιδιώτης, φυσιοθεραπευτής)\n' +
-'2. ΜΟΝΟ 1-2 ερωτήσεις κάθε φορά\n' +
-'3. B2B: ρώτα άθλημα, ηλικίες, αριθμό αθλητών\n' +
-'4. Ατομικοί: ρώτα στόχο (απόδοση, αδυνάτισμα, τραυματισμός, υγεία)\n' +
-'5. Παιδιά 4-12: τόνισε ταλέντο, παρακίνηση, πρόληψη\n' +
-'6. Μετά 3-4 ανταλλαγές δώσε σύσταση\n' +
-'7. Μίλα σαν άνθρωπος — σύντομα, καθαρά\n' +
-'8. B2B τιμές: εξαρτάται από αριθμό αθλητών\n' +
-'9. Τόνισε on-site δυνατότητα για B2B\n' +
-'10. Για σύσταση γράψε ΑΚΡΙΒΩΣ στο τέλος:\nRECOMMENDATION_JSON:{"package":"ΟΝΟΜΑ","services":["Υπηρεσία 1","Υπηρεσία 2"],"description":"γιατί ταιριάζει","price":"€90 ή Επικοινωνήστε","cta":"Κλείσε Ραντεβού","isB2B":false}\n' +
-'11. Μετά σύσταση ρώτα για στοιχεία επικοινωνίας\n' +
-'12. Μίλα Ελληνικά εκτός αν ο επισκέπτης μιλήσει Αγγλικά\n\n' +
-'## ΓΟΝΕΙΣ:\n' +
-'Πρώτα ρώτα: "Έχεις ήδη κάνει μετρήσεις ή σκέφτεσαι να ξεκινήσεις;"\n' +
-'Α) Νέος πελάτης: ρώτα ηλικία/άθλημα, μίλα για ανάπτυξη/πρόληψη/ταλέντο\n' +
-'Β) Έχει αποτελέσματα που δεν καταλαβαίνει: εξήγησε με απλή γλώσσα ό,τι σου πει (οποιαδήποτε μέτρηση), κατάληξε σε ραντεβού ερμηνείας\n' +
-'Γ) Πρόβλημα παιδιού: άκου πρώτα με ενσυναίσθηση, μετά πρότεινε υπηρεσία\n' +
-'Πάντα: απλή γλώσσα, ζεστασιά, σαν να μιλάς σε γονιό που νοιάζεται';
+// ── JSONP call — λύνει το CORS/redirect πρόβλημα ───
+function callAPI(params, onSuccess, onError) {
+  var cbName = 'cb_' + (++cbCount) + '_' + Date.now();
+  var timeout = setTimeout(function() {
+    cleanup();
+    onError('timeout');
+  }, 20000);
 
-// ════════════════════════════════════════════════════════════
-// ENTRY POINTS
-// ════════════════════════════════════════════════════════════
-
-function doGet(e) {
-  try {
-    var cb = e.parameter.callback || null;
-    var type = e.parameter.type;
-    if (type === 'chat')  return handleChatJsonp(e, cb);
-    if (type === 'lead')  return handleLeadJsonp(e, cb);
-    return jsonResponse({ status: 'OK', message: '360 Ergometric API running' }, cb);
-  } catch(err) {
-    return jsonResponse({ success: false, error: err.toString() }, e.parameter.callback || null);
+  function cleanup() {
+    clearTimeout(timeout);
+    delete window[cbName];
+    var s = document.getElementById(cbName);
+    if (s) s.remove();
   }
+
+  window[cbName] = function(data) {
+    cleanup();
+    onSuccess(data);
+  };
+
+  var url = API + '?callback=' + cbName;
+  Object.keys(params).forEach(function(k) {
+    url += '&' + k + '=' + encodeURIComponent(params[k]);
+  });
+
+  var script = document.createElement('script');
+  script.id = cbName;
+  script.src = url;
+  script.onerror = function() {
+    cleanup();
+    onError('script error');
+  };
+  document.head.appendChild(script);
 }
 
-function handleChatJsonp(e, cb) {
-  var result = handleChat(e);
-  var data = JSON.parse(result.getContent());
-  return jsonResponse(data, cb);
-}
+// ── Send ────────────────────────────────────────────
+function send(txt) {
+  if (isBusy) return;
+  var inp = document.getElementById("inp");
+  var msg = (txt || inp.value).trim();
+  if (!msg) return;
 
-function handleLeadJsonp(e, cb) {
-  var result = handleLead(e);
-  var data = JSON.parse(result.getContent());
-  return jsonResponse(data, cb);
-}
+  inp.value = ""; inp.style.height = "auto";
+  removeChips();
+  addUser(msg);
+  isBusy = true;
 
-function doPost(e) {
-  try {
-    var data = JSON.parse(e.postData.contents);
-    if (data.type === 'pdf_report') return handlePdfReport(data);
-    return jsonResponse({ success: false, error: 'Unknown type' });
-  } catch(err) {
-    return jsonResponse({ success: false, error: err.toString() });
-  }
-}
-
-// ════════════════════════════════════════════════════════════
-// CHAT — χρησιμοποιεί CacheService για session history
-// Έτσι το URL παραμένει μικρό — στέλνουμε μόνο sessionId + νέο μήνυμα
-// ════════════════════════════════════════════════════════════
-
-function handleChat(e) {
-  try {
-    var sessionId = e.parameter.sid;
-    var newMessage = e.parameter.msg;
-
-    if (!sessionId || !newMessage) {
-      return jsonResponse({ success: false, error: 'Missing sid or msg' });
-    }
-
-    // Φόρτωσε history από cache
-    var cache = CacheService.getScriptCache();
-    var cached = cache.get('chat_' + sessionId);
-    var messages = cached ? JSON.parse(cached) : [];
-
-    // Πρόσθεσε νέο μήνυμα
-    messages.push({ role: 'user', content: newMessage });
-
-    // Κράτα μόνο τα τελευταία 10 μηνύματα (5 ανταλλαγές)
-    if (messages.length > 10) {
-      messages = messages.slice(messages.length - 10);
-    }
-
-    // Κάλεσε Claude API
-    var payload = {
-      model: 'claude-sonnet-4-6',
-      max_tokens: 800,
-      system: CHAT_SYSTEM_PROMPT,
-      messages: messages
-    };
-
-    var response = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': CONFIG.CLAUDE_API_KEY,
-        'anthropic-version': '2023-06-01'
+  showTyping(function() {
+    callAPI(
+      { type: 'chat', sid: SESSION_ID, msg: msg },
+      function(data) {
+        removeTyping();
+        isBusy = false;
+        if (!data.success) {
+          addAI("Συγγνώμη, προέκυψε τεχνικό πρόβλημα. Παρακαλώ επικοινώνησε στο **+357 99341202**.");
+          return;
+        }
+        var full = data.reply;
+        var match = full.match(/RECOMMENDATION_JSON:(\{[\s\S]+?\})\s*$/m);
+        if (match) {
+          var t = full.replace(/RECOMMENDATION_JSON:[\s\S]+$/, "").trim();
+          if (t) addAI(t);
+          try { showRec(JSON.parse(match[1])); } catch(e) { addAI(full); }
+        } else {
+          addAI(full);
+        }
       },
-      payload: JSON.stringify(payload),
-      muteHttpExceptions: true
-    });
-
-    var result = JSON.parse(response.getContentText());
-
-    if (result.error) {
-      return jsonResponse({ success: false, error: result.error.message });
-    }
-
-    var reply = result.content[0].text;
-
-    // Αποθήκευσε history (assistant reply) στο cache — 30 λεπτά
-    messages.push({ role: 'assistant', content: reply });
-    cache.put('chat_' + sessionId, JSON.stringify(messages), 1800);
-
-    return jsonResponse({ success: true, reply: reply });
-
-  } catch(err) {
-    return jsonResponse({ success: false, error: err.toString() });
-  }
-}
-
-// ════════════════════════════════════════════════════════════
-// LEAD
-// ════════════════════════════════════════════════════════════
-
-function handleLead(e) {
-  try {
-    var name    = e.parameter.name    || '';
-    var phone   = e.parameter.phone   || '';
-    var email   = e.parameter.email   || '';
-    var pkg     = e.parameter.pkg     || '';
-    var time    = e.parameter.time    || '';
-    var club    = e.parameter.club    || '';
-    var players = e.parameter.players || '';
-
-    var body =
-      '🆕 ΝΕΟ LEAD — ergometrictests.com Chatbot\n' +
-      '━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
-      '👤 Όνομα: ' + name + '\n' +
-      '📞 Τηλέφωνο: ' + phone + '\n' +
-      '📧 Email: ' + (email || '—') + '\n' +
-      '📦 Ενδιαφέρον: ' + pkg + '\n' +
-      '⏰ Ώρα: ' + (time || '—') + '\n' +
-      (club    ? '🏟️ Σύλλογος: ' + club + '\n' : '') +
-      (players ? '👥 Αθλητές: ' + players + '\n' : '') +
-      '━━━━━━━━━━━━━━━━━━━━━━━━━';
-
-    GmailApp.sendEmail(
-      CONFIG.FROM_EMAIL,
-      '🆕 Νέο Lead: ' + name + ' — ' + pkg,
-      body,
-      { name: '360 Ergometric Chatbot' }
+      function(err) {
+        removeTyping();
+        isBusy = false;
+        addAI("Δεν μπόρεσα να συνδεθώ. Παρακαλώ επικοινώνησε στο **+357 99341202**.");
+      }
     );
-
-    return jsonResponse({ success: true });
-  } catch(err) {
-    return jsonResponse({ success: false, error: err.toString() });
-  }
+  });
 }
 
-// ════════════════════════════════════════════════════════════
-// PDF REPORT
-// ════════════════════════════════════════════════════════════
-
-function handlePdfReport(data) {
-  try {
-    var pdfBase64    = data.pdfBase64;
-    var athleteName  = data.athleteName;
-    var athleteEmail = data.athleteEmail;
-    var testDate     = data.testDate || new Date().toLocaleDateString('el-GR');
-
-    if (!pdfBase64 || !athleteName || !athleteEmail) {
-      return jsonResponse({ success: false, error: 'Missing fields' });
-    }
-
-    var parsed = parsePdfWithClaude(pdfBase64);
-    if (!parsed.success) return jsonResponse({ success: false, error: parsed.error });
-
-    var html  = generateHtmlReport(parsed.data, athleteName, testDate);
-    var drive = saveToDrive(html, pdfBase64, athleteName, testDate);
-    if (!drive.success) return jsonResponse({ success: false, error: drive.error });
-
-    sendReportEmail(athleteEmail, athleteName, drive.reportUrl, drive.pdfUrl, testDate);
-    return jsonResponse({ success: true, reportUrl: drive.reportUrl, pdfUrl: drive.pdfUrl });
-
-  } catch(err) {
-    return jsonResponse({ success: false, error: err.toString() });
-  }
+// ── UI: Messages ────────────────────────────────────
+function addUser(text) {
+  var c = document.getElementById("chat");
+  var el = document.createElement("div");
+  el.className = "msg u";
+  el.innerHTML = '<div class="av2">Εσύ</div><div class="bbl">' + esc(text) + '</div>';
+  c.appendChild(el); scroll();
 }
 
-// ════════════════════════════════════════════════════════════
-// HELPERS
-// ════════════════════════════════════════════════════════════
-
-function parsePdfWithClaude(pdfBase64) {
-  try {
-    var payload = {
-      model: 'claude-sonnet-4-6',
-      max_tokens: 2000,
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: pdfBase64 } },
-          { type: 'text', text: 'Extract ALL isokinetic data. Return ONLY valid JSON, no markdown. Structure: {"patientId":"","testDate":"","protocol":"","speed":"","reps":5,"extensors":{"right":{"peakTorque":0,"peakTorqueCV":0,"peakTorqueBW":0,"workPerRep":0,"workPerRepCV":0,"workPerRepBW":0,"avgPower":0,"avgPowerCV":0,"avgPowerBW":0,"jointAngle":0,"jointAngleCV":0,"rom":0,"romCV":0,"timeToPeak":0,"timeToPeakCV":0,"timePeakHeld":0,"timePeakHeldCV":0,"forceDecay":0,"forceDecayCV":0,"recipDelay":0,"recipDelayCV":0,"delayTime":0,"delayTimeCV":0},"left":{same},"deficit":0},"flexors":{"right":{same fields plus "hqRatio":0},"left":{same},"deficit":0}}' }
-        ]
-      }]
-    };
-
-    var resp = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': CONFIG.CLAUDE_API_KEY, 'anthropic-version': '2023-06-01' },
-      payload: JSON.stringify(payload),
-      muteHttpExceptions: true
-    });
-
-    var r = JSON.parse(resp.getContentText());
-    if (r.error) return { success: false, error: r.error.message };
-    return { success: true, data: JSON.parse(r.content[0].text.trim()) };
-  } catch(err) {
-    return { success: false, error: err.toString() };
-  }
+function addAI(text) {
+  var c = document.getElementById("chat");
+  var el = document.createElement("div");
+  el.className = "msg ai";
+  el.innerHTML = '<div class="av2">N</div><div class="bbl">' + fmt(text) + '</div>';
+  c.appendChild(el); scroll();
 }
 
-function saveToDrive(htmlContent, pdfBase64, athleteName, dateStr) {
-  try {
-    var folder = DriveApp.getFolderById(CONFIG.DRIVE_FOLDER_ID);
-    var safe = athleteName.replace(/[^a-zA-Z0-9\u0370-\u03FF\s]/g,'').trim();
-    var fname = safe + '_' + dateStr.replace(/\//g,'-');
-    var existing = folder.getFoldersByName(fname);
-    var sub = existing.hasNext() ? existing.next() : folder.createFolder(fname);
-
-    var hf = sub.createFile(safe + '_Report.html', htmlContent, MimeType.HTML);
-    hf.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-
-    var pb = Utilities.newBlob(Utilities.base64Decode(pdfBase64), MimeType.PDF, safe + '_Cybex.pdf');
-    var pf = sub.createFile(pb);
-    pf.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-
-    return {
-      success: true,
-      reportUrl: 'https://drive.google.com/file/d/' + hf.getId() + '/view',
-      pdfUrl:    'https://drive.google.com/file/d/' + pf.getId() + '/view'
-    };
-  } catch(err) {
-    return { success: false, error: err.toString() };
-  }
+function showTyping(cb) {
+  var c = document.getElementById("chat");
+  var el = document.createElement("div");
+  el.className = "msg ai"; el.id = "typ";
+  el.innerHTML = '<div class="av2">N</div><div class="typ"><div class="dt"></div><div class="dt"></div><div class="dt"></div></div>';
+  c.appendChild(el); scroll();
+  setTimeout(cb, 400);
 }
 
-function sendReportEmail(toEmail, athleteName, reportUrl, pdfUrl, dateStr) {
-  var fn = athleteName.split(',')[1] ? athleteName.split(',')[1].trim() : athleteName.split(' ')[0];
-  var subject = 'Αποτελέσματα Ισοκινητικής Αξιολόγησης — ' + athleteName + ' (' + dateStr + ')';
-  var html =
-    '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">' +
-    '<div style="background:linear-gradient(135deg,#0f1117,#1a2040);padding:28px;text-align:center;">' +
-    '<div style="font-size:26px;font-weight:800;color:#fff;">360</div>' +
-    '<div style="font-size:12px;color:#64b3f4;letter-spacing:2px;text-transform:uppercase;margin-top:3px;">Ergometric Tests</div></div>' +
-    '<div style="padding:32px;background:#fff;">' +
-    '<p style="font-size:17px;font-weight:600;color:#1e293b;margin:0 0 14px;">Γεια σου, ' + fn + '!</p>' +
-    '<p style="color:#475569;line-height:1.7;margin:0 0 20px;">Τα αποτελέσματα της <strong>Ισοκινητικής Αξιολόγησης</strong> της <strong>' + dateStr + '</strong> είναι έτοιμα.</p>' +
-    '<a href="' + reportUrl + '" style="display:block;background:linear-gradient(135deg,#3b82f6,#06b6d4);color:#fff;padding:13px 24px;border-radius:8px;text-decoration:none;font-weight:600;text-align:center;margin-bottom:10px;">📊 Δες το Interactive Report</a>' +
-    '<a href="' + pdfUrl + '" style="display:block;background:#f8fafc;border:1px solid #e2e8f0;color:#475569;padding:11px 24px;border-radius:8px;text-decoration:none;text-align:center;margin-bottom:20px;">📄 Κατέβασε το Αρχικό PDF</a>' +
-    '<p style="color:#94a3b8;font-size:12px;border-top:1px solid #f1f5f9;padding-top:16px;">🔒 Προσωπικός σύνδεσμος<br>' + CONFIG.LAB_PHONE + ' | ' + CONFIG.FROM_EMAIL + '</p>' +
-    '</div></div>';
-
-  GmailApp.sendEmail(toEmail, subject, '', { htmlBody: html, name: CONFIG.FROM_NAME, replyTo: CONFIG.FROM_EMAIL });
-  GmailApp.sendEmail(CONFIG.FROM_EMAIL, '[COPY] ' + subject, '', { htmlBody: html, name: CONFIG.FROM_NAME });
+function removeTyping() {
+  var t = document.getElementById("typ");
+  if (t) t.remove();
 }
 
-function generateHtmlReport(d, athleteName, testDate) {
-  var er = d.extensors.right, el = d.extensors.left;
-  var fr = d.flexors.right,  fll = d.flexors.left;
-  function dc(v){ return v<=10?'#22c55e':v<=15?'#f59e0b':'#ef4444'; }
-  function cc(v){ return Math.abs(v)<=0.10?'cv-ok':Math.abs(v)<=0.20?'cv-warn':'cv-bad'; }
-  function br(p,c){ return '<div class="bt"><div class="bf '+c+'" style="width:'+Math.min(p,100)+'%"></div></div>'; }
-  function pc(v,m){ return Math.round((v/m)*100); }
-  var hqRS = fr.hqRatio>=55&&fr.hqRatio<=70?['rs-ok','✓ Εντός ορίων']:fr.hqRatio>70?['rs-warn','⚠ Αυξημένος']:['rs-bad','✗ Χαμηλός'];
-  var hqLS = fll.hqRatio>=55&&fll.hqRatio<=70?['rs-ok','✓ Εντός ορίων']:fll.hqRatio>70?['rs-warn','⚠ Αυξημένος']:['rs-bad','✗ Χαμηλός'];
-
-  return '<!DOCTYPE html><html lang="el"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
-  '<title>Ισοκινητική — '+athleteName+'</title>' +
-  '<style>@import url(\'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap\');' +
-  ':root{--bg:#0f1117;--s:#171b26;--s2:#1e2435;--b:#2a3048;--a:#3b82f6;--a2:#06b6d4;--w:#f59e0b;--d:#ef4444;--g:#22c55e;--t:#e2e8f0;--m:#64748b;--l:#94a3b8;--r:#e05252;--ll:#4a90d9;}' +
-  '*{box-sizing:border-box;margin:0;padding:0;}body{background:var(--bg);color:var(--t);font-family:Inter,sans-serif;font-size:14px;}' +
-  '.hdr{background:linear-gradient(135deg,#0f1117,#1a2040);border-bottom:1px solid var(--b);padding:22px 36px;display:flex;align-items:center;justify-content:space-between;}' +
-  '.li{width:38px;height:38px;background:linear-gradient(135deg,var(--a),var(--a2));border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;}' +
-  '.lg{display:flex;align-items:center;gap:11px;}.ln{font-size:12px;font-weight:600;color:var(--a2);text-transform:uppercase;letter-spacing:.06em;}.ls{font-size:11px;color:var(--m);margin-top:2px;}.lc{font-size:11px;color:var(--l);margin-top:3px;}' +
-  '.rt{font-size:15px;font-weight:600;text-align:right;}' +
-  '.pb{background:var(--s);border-bottom:1px solid var(--b);padding:15px 36px;display:flex;align-items:center;gap:28px;flex-wrap:wrap;}' +
-  '.pn{font-size:19px;font-weight:700;}.pl{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--m);}.pv{font-size:12px;font-weight:500;color:var(--l);font-family:"JetBrains Mono",monospace;}' +
-  '.bd{padding:4px 10px;border-radius:18px;font-size:11px;font-weight:600;text-transform:uppercase;background:rgba(59,130,246,.15);color:var(--a);border:1px solid rgba(59,130,246,.3);}' +
-  '.ct{padding:26px 36px;max-width:1100px;margin:0 auto;}' +
-  '.pr{background:var(--s2);border:1px solid var(--b);border-left:3px solid var(--a);border-radius:8px;padding:11px 17px;display:flex;gap:18px;flex-wrap:wrap;margin-bottom:22px;}' +
-  '.pi .pil{font-size:10px;color:var(--m);text-transform:uppercase;letter-spacing:.06em;}.pi .piv{font-size:13px;font-weight:600;margin-top:2px;}' +
-  '.sh{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--m);margin-bottom:13px;display:flex;align-items:center;gap:10px;}.sh::after{content:"";flex:1;height:1px;background:var(--b);}' +
-  '.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:13px;margin-bottom:22px;}' +
-  '.mc{background:var(--s);border:1px solid var(--b);border-radius:10px;padding:17px;position:relative;overflow:hidden;}' +
-  '.mct{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--m);margin-bottom:13px;font-weight:600;}' +
-  '.rl{margin-bottom:9px;}.rll{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--l);margin-bottom:3px;}' +
-  '.sd{display:inline-block;width:7px;height:7px;border-radius:2px;}.sr{background:var(--r);}.sl{background:var(--ll);}' +
-  '.br{display:flex;align-items:center;gap:7px;}.bt{flex:1;height:5px;background:var(--bg);border-radius:3px;overflow:hidden;}.bf{height:100%;border-radius:3px;}' +
-  '.bfr{background:var(--r);}.bfl{background:var(--ll);}' +
-  '.bv{font-family:"JetBrains Mono",monospace;font-size:12px;font-weight:600;min-width:46px;text-align:right;}' +
-  '.bs{display:flex;justify-content:space-between;font-size:10px;color:var(--m);margin-top:2px;}' +
-  '.df{margin-top:9px;padding-top:9px;border-top:1px dashed var(--b);display:flex;justify-content:space-between;align-items:center;}' +
-  '.dfl{font-size:11px;color:var(--m);}.dfv{font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;}' +
-  '.rw{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-bottom:22px;}' +
-  '.rc{background:var(--s);border:1px solid var(--b);border-radius:10px;padding:18px;display:flex;flex-direction:column;align-items:center;gap:7px;}' +
-  '.rb{font-size:42px;font-weight:800;font-family:"JetBrains Mono",monospace;line-height:1;}' +
-  '.rs{font-size:11px;font-weight:600;padding:3px 10px;border-radius:18px;}' +
-  '.rs-ok{background:rgba(34,197,94,.12);color:var(--g);border:1px solid rgba(34,197,94,.25);}' +
-  '.rs-warn{background:rgba(245,158,11,.12);color:var(--w);border:1px solid rgba(245,158,11,.25);}' +
-  '.rs-bad{background:rgba(239,68,68,.12);color:var(--d);border:1px solid rgba(239,68,68,.25);}' +
-  '.pt{width:100%;border-collapse:collapse;background:var(--s);border:1px solid var(--b);border-radius:10px;overflow:hidden;margin-bottom:22px;}' +
-  '.pt thead th{background:var(--s2);padding:8px 11px;font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--m);font-weight:600;text-align:center;}' +
-  '.pt thead th:first-child{text-align:left;}.pt tbody tr{border-top:1px solid var(--b);}' +
-  '.pt td{padding:8px 11px;font-size:12px;text-align:center;font-family:"JetBrains Mono",monospace;}' +
-  '.pt td:first-child{text-align:left;font-family:Inter,sans-serif;}' +
-  '.gl{background:rgba(59,130,246,.05);font-size:11px;font-weight:600;color:var(--a2);text-transform:uppercase;letter-spacing:.06em;font-family:Inter,sans-serif !important;}' +
-  '.cf{font-size:10px;padding:1px 5px;border-radius:3px;margin-left:3px;}' +
-  '.cv-ok{background:rgba(34,197,94,.1);color:var(--g);}.cv-warn{background:rgba(245,158,11,.1);color:var(--w);}.cv-bad{background:rgba(239,68,68,.1);color:var(--d);}' +
-  '.dot{width:8px;height:8px;border-radius:50%;display:inline-block;vertical-align:middle;}.dr{background:var(--r);}.dl{background:var(--ll);}' +
-  'footer{margin-top:28px;padding:16px 36px;border-top:1px solid var(--b);display:flex;justify-content:space-between;font-size:11px;color:var(--m);}' +
-  'footer a{color:var(--a2);text-decoration:none;}' +
-  '@media(max-width:750px){.g3,.rw{grid-template-columns:1fr;}.hdr,.ct,.pb,footer{padding:16px 12px;}}' +
-  '</style></head><body>' +
-  '<header class="hdr"><div class="lg"><div class="li">360</div><div><div class="ln">360 Ergometric Tests</div><div class="ls">Sports Science Laboratory</div><div class="lc">'+CONFIG.LAB_URL+' · '+CONFIG.LAB_PHONE+'</div></div></div>' +
-  '<div class="rt">Ισοκινητική Αξιολόγηση<br><span style="font-size:12px;color:var(--m)">Γόνατος — Long Form</span></div></header>' +
-  '<div class="pb"><div><div class="pn">'+athleteName+'</div></div>' +
-  '<div><div class="pl">ID</div><div class="pv">'+(d.patientId||'—')+'</div></div>' +
-  '<div><div class="pl">Ημερομηνία</div><div class="pv">'+testDate+'</div></div>' +
-  '<div><div class="pl">Σύστημα</div><div class="pv">HUMAC2015® · CYBEX NORM</div></div>' +
-  '<span class="bd">Long Form Report</span></div>' +
-  '<main class="ct">' +
-  '<div class="pr">' +
-  '<div class="pi"><div class="pil">Πρωτόκολλο</div><div class="piv">'+(d.protocol||'Isokinetic Con/Con')+'</div></div>' +
-  '<div class="pi"><div class="pil">Ταχύτητα</div><div class="piv">'+(d.speed||'60/60 deg/s')+'</div></div>' +
-  '<div class="pi"><div class="pil">Επαναλήψεις</div><div class="piv">'+(d.reps||5)+' reps</div></div>' +
-  '<div class="pi"><div class="pil">Μέτρηση</div><div class="piv">Μέση τιμή (avg)</div></div></div>' +
-  '<div class="sh">Παράμετροι Ροπής</div><div class="g3">' +
-  '<div class="mc"><div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--r),#ff8080)"></div><div class="mct">Peak Torque — Εκτείνοντες</div><div class="rl"><div class="rll"><span class="sd sr"></span>Δεξί</div><div class="br">'+br(pc(er.peakTorque,300),'bfr')+'<div class="bv">'+er.peakTorque+' <span style="font-size:10px;color:var(--m)">Nm</span></div></div><div class="bs"><span>%BW: '+er.peakTorqueBW+'</span><span>CoV: '+er.peakTorqueCV+'</span></div></div><div class="rl"><div class="rll"><span class="sd sl"></span>Αριστερό</div><div class="br">'+br(pc(el.peakTorque,300),'bfl')+'<div class="bv">'+el.peakTorque+' <span style="font-size:10px;color:var(--m)">Nm</span></div></div><div class="bs"><span>%BW: '+el.peakTorqueBW+'</span><span>CoV: '+el.peakTorqueCV+'</span></div></div><div class="df"><span class="dfl">Ασυμμετρία</span><span class="dfv" style="color:'+dc(d.extensors.deficit)+'">'+d.extensors.deficit+'%</span></div></div>' +
-  '<div class="mc"><div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--ll),#7ab8ff)"></div><div class="mct">Peak Torque — Καμπτήρες</div><div class="rl"><div class="rll"><span class="sd sr"></span>Δεξί</div><div class="br">'+br(pc(fr.peakTorque,200),'bfr')+'<div class="bv">'+fr.peakTorque+' <span style="font-size:10px;color:var(--m)">Nm</span></div></div><div class="bs"><span>%BW: '+fr.peakTorqueBW+'</span><span>CoV: '+fr.peakTorqueCV+'</span></div></div><div class="rl"><div class="rll"><span class="sd sl"></span>Αριστερό</div><div class="br">'+br(pc(fll.peakTorque,200),'bfl')+'<div class="bv">'+fll.peakTorque+' <span style="font-size:10px;color:var(--m)">Nm</span></div></div><div class="bs"><span>%BW: '+fll.peakTorqueBW+'</span><span>CoV: '+fll.peakTorqueCV+'</span></div></div><div class="df"><span class="dfl">Ασυμμετρία</span><span class="dfv" style="color:'+dc(d.flexors.deficit)+'">'+d.flexors.deficit+'%</span></div></div>' +
-  '<div class="mc"><div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#22c55e,#16a34a)"></div><div class="mct">Work / Rep — Εκτείνοντες</div><div class="rl"><div class="rll"><span class="sd sr"></span>Δεξί</div><div class="br">'+br(pc(er.workPerRep,350),'bfr')+'<div class="bv">'+er.workPerRep+' <span style="font-size:10px;color:var(--m)">J</span></div></div><div class="bs"><span>%BW: '+er.workPerRepBW+'</span><span>CoV: '+er.workPerRepCV+'</span></div></div><div class="rl"><div class="rll"><span class="sd sl"></span>Αριστερό</div><div class="br">'+br(pc(el.workPerRep,350),'bfl')+'<div class="bv">'+el.workPerRep+' <span style="font-size:10px;color:var(--m)">J</span></div></div><div class="bs"><span>%BW: '+el.workPerRepBW+'</span><span>CoV: '+el.workPerRepCV+'</span></div></div></div>' +
-  '<div class="mc"><div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--ll),#7ab8ff)"></div><div class="mct">Work / Rep — Καμπτήρες</div><div class="rl"><div class="rll"><span class="sd sr"></span>Δεξί</div><div class="br">'+br(pc(fr.workPerRep,250),'bfr')+'<div class="bv">'+fr.workPerRep+' <span style="font-size:10px;color:var(--m)">J</span></div></div><div class="bs"><span>%BW: '+fr.workPerRepBW+'</span><span>CoV: '+fr.workPerRepCV+'</span></div></div><div class="rl"><div class="rll"><span class="sd sl"></span>Αριστερό</div><div class="br">'+br(pc(fll.workPerRep,250),'bfl')+'<div class="bv">'+fll.workPerRep+' <span style="font-size:10px;color:var(--m)">J</span></div></div><div class="bs"><span>%BW: '+fll.workPerRepBW+'</span><span>CoV: '+fll.workPerRepCV+'</span></div></div></div>' +
-  '<div class="mc"><div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--w),#d97706)"></div><div class="mct">Avg Power — Εκτείνοντες</div><div class="rl"><div class="rll"><span class="sd sr"></span>Δεξί</div><div class="br">'+br(pc(er.avgPower,220),'bfr')+'<div class="bv">'+er.avgPower+' <span style="font-size:10px;color:var(--m)">W</span></div></div><div class="bs"><span>%BW: '+er.avgPowerBW+'</span><span>CoV: '+er.avgPowerCV+'</span></div></div><div class="rl"><div class="rll"><span class="sd sl"></span>Αριστερό</div><div class="br">'+br(pc(el.avgPower,220),'bfl')+'<div class="bv">'+el.avgPower+' <span style="font-size:10px;color:var(--m)">W</span></div></div><div class="bs"><span>%BW: '+el.avgPowerBW+'</span><span>CoV: '+el.avgPowerCV+'</span></div></div></div>' +
-  '<div class="mc"><div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--ll),#7ab8ff)"></div><div class="mct">Avg Power — Καμπτήρες</div><div class="rl"><div class="rll"><span class="sd sr"></span>Δεξί</div><div class="br">'+br(pc(fr.avgPower,150),'bfr')+'<div class="bv">'+fr.avgPower+' <span style="font-size:10px;color:var(--m)">W</span></div></div><div class="bs"><span>%BW: '+fr.avgPowerBW+'</span><span>CoV: '+fr.avgPowerCV+'</span></div></div><div class="rl"><div class="rll"><span class="sd sl"></span>Αριστερό</div><div class="br">'+br(pc(fll.avgPower,150),'bfl')+'<div class="bv">'+fll.avgPower+' <span style="font-size:10px;color:var(--m)">W</span></div></div><div class="bs"><span>%BW: '+fll.avgPowerBW+'</span><span>CoV: '+fll.avgPowerCV+'</span></div></div></div>' +
-  '</div>' +
-  '<div class="sh">H:Q Ratio</div><div class="rw">' +
-  '<div class="rc"><div style="font-size:11px;font-weight:600;color:var(--m);text-transform:uppercase;"><span class="dot dr" style="margin-right:5px;"></span>Δεξί</div><div class="rb">'+fr.hqRatio+'<span style="font-size:18px;color:var(--m)">%</span></div><div style="width:100%;background:var(--bg);border-radius:3px;height:6px;overflow:hidden;"><div style="width:'+fr.hqRatio+'%;height:100%;background:linear-gradient(90deg,var(--r),#ff8080);border-radius:3px;"></div></div><div style="display:flex;justify-content:space-between;font-size:10px;color:var(--m);width:100%;"><span>0%</span><span style="color:var(--w)">55–70%</span><span>100%</span></div><span class="rs '+hqRS[0]+'">'+hqRS[1]+'</span></div>' +
-  '<div class="rc"><div style="font-size:11px;font-weight:600;color:var(--m);text-transform:uppercase;"><span class="dot dl" style="margin-right:5px;"></span>Αριστερό</div><div class="rb">'+fll.hqRatio+'<span style="font-size:18px;color:var(--m)">%</span></div><div style="width:100%;background:var(--bg);border-radius:3px;height:6px;overflow:hidden;"><div style="width:'+fll.hqRatio+'%;height:100%;background:linear-gradient(90deg,var(--ll),#7ab8ff);border-radius:3px;"></div></div><div style="display:flex;justify-content:space-between;font-size:10px;color:var(--m);width:100%;"><span>0%</span><span style="color:var(--w)">55–70%</span><span>100%</span></div><span class="rs '+hqLS[0]+'">'+hqLS[1]+'</span></div></div>' +
-  '<div class="sh">Παράμετροι Χρόνου</div>' +
-  '<table class="pt"><thead><tr><th style="text-align:left;width:25%">Παράμετρος</th><th>Δεξί Ext</th><th>CoV</th><th>Δεξί Fl</th><th>CoV</th><th>Αριστ. Ext</th><th>CoV</th><th>Αριστ. Fl</th><th>CoV</th></tr></thead><tbody>' +
-  '<tr><td colspan="9" class="gl" style="padding:7px 11px;">Χρόνος Κορύφωσης</td></tr>' +
-  '<tr><td>Time to Peak Torque (s)</td><td>'+er.timeToPeak+'</td><td><span class="cf '+cc(er.timeToPeakCV)+'">'+er.timeToPeakCV+'</span></td><td>'+fr.timeToPeak+'</td><td><span class="cf '+cc(fr.timeToPeakCV)+'">'+fr.timeToPeakCV+'</span></td><td>'+el.timeToPeak+'</td><td><span class="cf '+cc(el.timeToPeakCV)+'">'+el.timeToPeakCV+'</span></td><td>'+fll.timeToPeak+'</td><td><span class="cf '+cc(fll.timeToPeakCV)+'">'+fll.timeToPeakCV+'</span></td></tr>' +
-  '<tr><td>Time Peak Torque Held (s)</td><td>'+er.timePeakHeld+'</td><td><span class="cf '+cc(er.timePeakHeldCV)+'">'+er.timePeakHeldCV+'</span></td><td>'+fr.timePeakHeld+'</td><td><span class="cf '+cc(fr.timePeakHeldCV)+'">'+fr.timePeakHeldCV+'</span></td><td>'+el.timePeakHeld+'</td><td><span class="cf '+cc(el.timePeakHeldCV)+'">'+el.timePeakHeldCV+'</span></td><td>'+fll.timePeakHeld+'</td><td><span class="cf '+cc(fll.timePeakHeldCV)+'">'+fll.timePeakHeldCV+'</span></td></tr>' +
-  '<tr><td colspan="9" class="gl" style="padding:7px 11px;">Αποκατάσταση &amp; Καθυστερήσεις</td></tr>' +
-  '<tr><td>Force Decay Time (s)</td><td>'+er.forceDecay+'</td><td><span class="cf '+cc(er.forceDecayCV)+'">'+er.forceDecayCV+'</span></td><td>'+fr.forceDecay+'</td><td><span class="cf '+cc(fr.forceDecayCV)+'">'+fr.forceDecayCV+'</span></td><td>'+el.forceDecay+'</td><td><span class="cf '+cc(el.forceDecayCV)+'">'+el.forceDecayCV+'</span></td><td>'+fll.forceDecay+'</td><td><span class="cf '+cc(fll.forceDecayCV)+'">'+fll.forceDecayCV+'</span></td></tr>' +
-  '<tr><td>Reciprocal Delay (s)</td><td>'+er.recipDelay+'</td><td><span class="cf '+cc(er.recipDelayCV)+'">'+er.recipDelayCV+'</span></td><td>'+fr.recipDelay+'</td><td><span class="cf '+cc(fr.recipDelayCV)+'">'+fr.recipDelayCV+'</span></td><td>'+el.recipDelay+'</td><td><span class="cf '+cc(el.recipDelayCV)+'">'+el.recipDelayCV+'</span></td><td>'+fll.recipDelay+'</td><td><span class="cf '+cc(fll.recipDelayCV)+'">'+fll.recipDelayCV+'</span></td></tr>' +
-  '<tr><td>Delay Time (s)</td><td>'+er.delayTime+'</td><td><span class="cf '+cc(er.delayTimeCV)+'">'+er.delayTimeCV+'</span></td><td>'+fr.delayTime+'</td><td><span class="cf '+cc(fr.delayTimeCV)+'">'+fr.delayTimeCV+'</span></td><td>'+el.delayTime+'</td><td><span class="cf '+cc(el.delayTimeCV)+'">'+el.delayTimeCV+'</span></td><td>'+fll.delayTime+'</td><td><span class="cf '+cc(fll.delayTimeCV)+'">'+fll.delayTimeCV+'</span></td></tr>' +
-  '</tbody></table>' +
-  '<div style="background:var(--s2);border:1px solid var(--b);border-radius:8px;padding:13px 17px;font-size:12px;color:var(--m);line-height:1.8;">' +
-  '<strong style="color:var(--l)">Σημείωση:</strong> Con/Con '+(d.speed||'60°/s')+' · '+(d.reps||5)+' reps · μέσες τιμές. ' +
-  'CoV <span class="cf cv-ok">≤0.10</span> σταθερό · <span class="cf cv-warn">0.10–0.20</span> μέτριο · <span class="cf cv-bad">&gt;0.20</span> υψηλή μεταβλητότητα · H:Q φυσ. εύρος: 55–70%</div>' +
-  '</main><footer><div><strong style="color:var(--l)">360 Ergometric Tests</strong> · <a href="'+CONFIG.LAB_URL+'">'+CONFIG.LAB_URL+'</a> · '+CONFIG.LAB_PHONE+'</div><div>HUMAC2015® · © Computer Sports Medicine, Inc.</div></footer></body></html>';
+function addChips(opts) {
+  removeChips();
+  var c = document.getElementById("chat");
+  var w = document.createElement("div");
+  w.className = "chips"; w.id = "chips";
+  opts.forEach(function(o) {
+    var chip = document.createElement("div");
+    chip.className = "chip"; chip.textContent = o;
+    chip.onclick = function() { send(o); };
+    w.appendChild(chip);
+  });
+  c.appendChild(w); scroll();
 }
 
-function jsonResponse(data, callback) {
-  var json = JSON.stringify(data);
-  if (callback) {
-    // JSONP mode — χωρίς CORS issues
-    return ContentService
-      .createTextOutput(callback + '(' + json + ')')
-      .setMimeType(ContentService.MimeType.JAVASCRIPT);
-  }
-  return ContentService
-    .createTextOutput(json)
-    .setMimeType(ContentService.MimeType.JSON);
+function removeChips() {
+  var ch = document.getElementById("chips");
+  if (ch) ch.remove();
 }
+
+// ── Recommendation Card ─────────────────────────────
+function showRec(rec) {
+  var c = document.getElementById("chat");
+  var el = document.createElement("div");
+  el.className = "msg ai";
+  var svcs = (rec.services||[]).map(function(s){ return '<div class="rec-si">'+esc(s)+'</div>'; }).join("");
+  var pkgS = esc(rec.package||"").replace(/'/g,"\\'");
+  el.innerHTML =
+    '<div class="av2">N</div><div class="rec">' +
+    '<div class="rec-b">⭐ Προτεινόμενο Πακέτο</div>' +
+    '<div class="rec-t">'+esc(rec.package)+'</div>' +
+    '<div class="rec-d">'+esc(rec.description)+'</div>' +
+    '<div class="rec-s">'+svcs+'</div>' +
+    '<div class="rec-p">Ενδεικτική τιμή: <strong>'+esc(rec.price)+'</strong></div>' +
+    '<button class="btn-c" onclick="showForm(\''+pkgS+'\','+(!!(rec.isB2B))+')">📅 '+esc(rec.cta||"Κλείσε Ραντεβού")+'</button>' +
+    '</div>';
+  c.appendChild(el);
+  setTimeout(function(){
+    addAI("Θέλεις να σου εξηγήσω περισσότερα; Ή κλείνουμε άμεσα ραντεβού; 😊");
+    addChips(["Πες μου περισσότερα","Κλείσε ραντεβού","Τι κοστίζει ακριβώς;","Πού βρίσκεστε;"]);
+  },300);
+  scroll();
+}
+
+// ── Contact Form ────────────────────────────────────
+function showForm(pkg, isB2B) {
+  removeChips();
+  setTimeout(function(){ addAI("Τέλεια! Άφησέ μου τα στοιχεία σου και θα επικοινωνήσω μαζί σου εντός της ίδιας μέρας. 📞"); },150);
+  setTimeout(function(){
+    var c = document.getElementById("chat");
+    var el = document.createElement("div");
+    el.className = "msg ai";
+    var b2b = isB2B ?
+      '<input type="text" id="cf-club" placeholder="Όνομα Συλλόγου / Ακαδημίας">'+
+      '<input type="number" id="cf-players" placeholder="Αριθμός αθλητών" min="1">' : "";
+    el.innerHTML =
+      '<div class="av2">N</div><div class="frm">' +
+      '<div class="frm-t">📋 Στοιχεία Επικοινωνίας</div>' +
+      '<input type="text" id="cf-name" placeholder="Ονοματεπώνυμο *">' +
+      '<input type="tel" id="cf-phone" placeholder="Τηλέφωνο *">' +
+      '<input type="email" id="cf-email" placeholder="Email">' +
+      b2b +
+      '<select id="cf-time"><option value="">Προτιμώμενη ώρα επικοινωνίας</option>' +
+      '<option>Πρωί (9:00–12:00)</option><option>Μεσημέρι (12:00–15:00)</option><option>Απόγευμα (15:00–18:00)</option></select>' +
+      '<input type="hidden" id="cf-pkg" value="'+esc(pkg)+'">' +
+      '<button class="btn-s" onclick="submitForm('+isB2B+')">Αποστολή →</button>' +
+      '<div class="frm-n">🔒 Τα στοιχεία σου είναι ασφαλή</div></div>';
+    c.appendChild(el); scroll();
+  },1000);
+}
+
+// ── Submit Lead ─────────────────────────────────────
+function submitForm(isB2B) {
+  var name    = ((document.getElementById("cf-name")||{}).value||"").trim();
+  var phone   = ((document.getElementById("cf-phone")||{}).value||"").trim();
+  var email   = (document.getElementById("cf-email")||{}).value||"";
+  var pkg     = (document.getElementById("cf-pkg")||{}).value||"";
+  var time    = (document.getElementById("cf-time")||{}).value||"";
+  var club    = ((document.getElementById("cf-club")||{}).value||"").trim();
+  var players = (document.getElementById("cf-players")||{}).value||"";
+
+  if (!name||!phone){ alert("Παρακαλώ συμπλήρωσε τουλάχιστον το όνομα και το τηλέφωνό σου."); return; }
+
+  callAPI({ type:'lead', name:name, phone:phone, email:email, pkg:pkg, time:time, club:club, players:players },
+    function(){}, function(){});
+
+  document.querySelectorAll(".frm").forEach(function(f){ var p=f.closest(".msg"); if(p) p.remove(); });
+  addAI("Τέλεια "+name.split(" ")[0]+"! ✅ Έλαβα τα στοιχεία σου.\n\nΘα επικοινωνήσω μαζί σου "+(time?time.toLowerCase():"σύντομα")+".\n\nΑν θέλεις να μιλήσεις άμεσα: **+357 99341202** 💪");
+  scroll();
+}
+
+// ── Utils ───────────────────────────────────────────
+function esc(s){ return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function fmt(t){ return esc(t).replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>").replace(/\n/g,"<br>"); }
+function scroll(){ var c=document.getElementById("chat"); setTimeout(function(){ c.scrollTop=c.scrollHeight; },40); }
+</script>
+</body>
+</html>
